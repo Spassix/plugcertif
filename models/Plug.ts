@@ -81,4 +81,5 @@ const plugSchema = new mongoose.Schema({
 plugSchema.index({ likes: -1 })
 plugSchema.index({ referralCount: -1 })
 
+// Export direct mais avec vérification pour éviter les erreurs de build
 export default mongoose.models.Plug || mongoose.model('Plug', plugSchema)

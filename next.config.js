@@ -27,6 +27,12 @@ const nextConfig = {
       },
     ]
   },
+  // Désactiver la collecte de données statiques pour les routes API
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+  },
 }
 
 module.exports = nextConfig

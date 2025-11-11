@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
-import Plug from '@/models/Plug'
+
+// Forcer la route à être dynamique pour éviter les problèmes de build
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 async function notifyBot(type: string, action: string, data: any) {
   try {
@@ -26,6 +29,9 @@ export async function POST(request: Request) {
   try {
     const data = await request.json()
     await connectToDatabase()
+    
+    // Import lazy du modèle pour éviter les problèmes de build
+    const Plug = (await import('@/models/Plug')).default
     
     // Ajouter isActive par défaut
     const plugData = {
