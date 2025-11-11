@@ -4,12 +4,18 @@ import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 
 const fetcher = async (url: string) => {
-  const res = await fetch(url)
-  if (!res.ok) {
-    console.error('[BackgroundProvider] Failed to fetch:', res.status)
-    throw new Error('Failed to fetch background')
+  try {
+    const res = await fetch(url)
+    if (!res.ok) {
+      // Si erreur, retourner des valeurs par défaut au lieu de throw
+      console.warn('[BackgroundProvider] Failed to fetch:', res.status, '- Using defaults')
+      return { backgroundImage: null, logoImage: null }
+    }
+    return res.json()
+  } catch (error) {
+    console.warn('[BackgroundProvider] Fetch error:', error, '- Using defaults')
+    return { backgroundImage: null, logoImage: null }
   }
-  return res.json()
 }
 
 export default function BackgroundProvider({ children }: { children: React.ReactNode }) {

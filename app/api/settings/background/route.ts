@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
-import Settings from '@/models/Settings'
 
+// Forcer la route à être dynamique
+export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
 export async function GET() {
   try {
     await connectToDatabase()
+    
+    // Import lazy du modèle pour éviter les problèmes de build
+    const Settings = (await import('@/models/Settings')).default
     
     const settings = await Settings.findOne()
     if (!settings) {
@@ -19,12 +23,16 @@ export async function GET() {
     }
     
     return NextResponse.json({
-      backgroundImage: settings.backgroundImage,
-      logoImage: settings.logoImage
+      backgroundImage: settings.backgroundImage || null,
+      logoImage: settings.logoImage || null
     })
   } catch (error) {
     console.error('Background GET error:', error)
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    // Retourner une réponse par défaut au lieu d'une erreur 500
+    return NextResponse.json({ 
+      backgroundImage: 'https://i.imgur.com/UqyTSrh.jpeg', 
+      logoImage: null 
+    })
   }
 }
 
@@ -32,6 +40,9 @@ export async function POST(request: Request) {
   try {
     const data = await request.json()
     await connectToDatabase()
+    
+    // Import lazy du modèle pour éviter les problèmes de build
+    const Settings = (await import('@/models/Settings')).default
     
     let settings = await Settings.findOne()
     if (!settings) {
@@ -48,8 +59,8 @@ export async function POST(request: Request) {
     await settings.save()
     
     return NextResponse.json({
-      backgroundImage: settings.backgroundImage,
-      logoImage: settings.logoImage
+      backgroundImage: settings.backgroundImage || null,
+      logoImage: settings.logoImage || null
     })
   } catch (error) {
     console.error('Background POST error:', error)
