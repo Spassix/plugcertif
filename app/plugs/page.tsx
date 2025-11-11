@@ -43,11 +43,12 @@ export default function PlugsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
-    if (plugs) {
+    // S'assurer que plugs est un tableau avant d'utiliser forEach
+    if (plugs && Array.isArray(plugs)) {
       // Extraire tous les pays disponibles
       const countriesSet = new Set<string>()
       plugs.forEach((plug: any) => {
-        if (plug.location?.countries) {
+        if (plug.location?.countries && Array.isArray(plug.location.countries)) {
           plug.location.countries.forEach((country: string) => {
             countriesSet.add(country)
           })
@@ -57,7 +58,7 @@ export default function PlugsPage() {
 
       // Filtrer les plugs
       let filtered = plugs.filter((plug: any) =>
-        plug.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        plug.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         plug.location?.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         plug.location?.country?.toLowerCase().includes(searchTerm.toLowerCase())
       )
@@ -76,6 +77,10 @@ export default function PlugsPage() {
       }))
       
       setFilteredPlugs(rankedPlugs)
+    } else {
+      // Si plugs n'est pas un tableau, initialiser avec un tableau vide
+      setFilteredPlugs([])
+      setAvailableCountries([])
     }
   }, [plugs, searchTerm, selectedCountry])
 

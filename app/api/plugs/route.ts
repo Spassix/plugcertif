@@ -14,9 +14,11 @@ export async function GET(request: Request) {
     
     const plugs = await PlugModel.find({ all, isActive: !all })
     
-    return NextResponse.json(plugs)
+    // S'assurer de toujours retourner un tableau
+    return NextResponse.json(Array.isArray(plugs) ? plugs : [])
   } catch (error) {
     console.error('Error fetching plugs:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    // Retourner un tableau vide au lieu d'une erreur pour éviter les crashes côté client
+    return NextResponse.json([])
   }
 }

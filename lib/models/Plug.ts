@@ -87,18 +87,35 @@ export const PlugModel = {
 
   // Trouver tous les plugs
   async find(filter: { isActive?: boolean; all?: boolean } = {}): Promise<Plug[]> {
-    const index = filter.all ? PLUG_INDEX : PLUG_ACTIVE_INDEX
-    const ids = await redisHelpers.smembers(index)
-    
-    if (ids.length === 0) return []
+    try {
+      const index = filter.all ? PLUG_INDEX : PLUG_ACTIVE_INDEX
+      const ids = await redisHelpers.smembers(index)
+      
+      // S'assurer que ids est un tableau
+      if (!Array.isArray(ids) || ids.length === 0) return []
 
-    const keys = ids.map(id => getKey(id))
-    const data = await redisHelpers.mget<string>(keys)
-    
-    return data
-      .filter((d): d is string => d !== null)
-      .map(d => JSON.parse(d))
-      .sort((a, b) => (b.likes || 0) - (a.likes || 0))
+      const keys = ids.map(id => getKey(id))
+      const data = await redisHelpers.mget<string>(keys)
+      
+      // S'assurer que data est un tableau
+      if (!Array.isArray(data)) return []
+      
+      return data
+        .filter((d): d is string => d !== null && typeof d === 'string')
+        .map(d => {
+          try {
+            return JSON.parse(d)
+          } catch (e) {
+            console.error('Error parsing plug data:', e)
+            return null
+          }
+        })
+        .filter((plug): plug is Plug => plug !== null)
+        .sort((a, b) => (b.likes || 0) - (a.likes || 0))
+    } catch (error) {
+      console.error('PlugModel.find error:', error)
+      return []
+    }
   },
 
   // Mettre à jour un plug

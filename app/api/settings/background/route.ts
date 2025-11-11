@@ -13,6 +13,14 @@ export async function GET() {
     
     const settings = await Settings.findOne()
     
+    // Gérer le cas où settings est null
+    if (!settings) {
+      return NextResponse.json({ 
+        backgroundImage: 'https://i.imgur.com/UqyTSrh.jpeg', 
+        logoImage: null 
+      })
+    }
+    
     return NextResponse.json({
       backgroundImage: settings.backgroundImage || null,
       logoImage: settings.logoImage || null

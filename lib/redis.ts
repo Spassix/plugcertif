@@ -77,7 +77,8 @@ export const redisHelpers = {
     try {
       if (keys.length === 0) return []
       const values = await redis.mget(...keys)
-      return values as (T | null)[]
+      // S'assurer de toujours retourner un tableau
+      return Array.isArray(values) ? (values as (T | null)[]) : []
     } catch (error) {
       console.error(`Redis MGET error:`, error)
       return []
@@ -138,7 +139,9 @@ export const redisHelpers = {
   // Obtenir tous les membres d'un set
   async smembers(key: string): Promise<any[]> {
     try {
-      return await redis.smembers(key)
+      const result = await redis.smembers(key)
+      // S'assurer de toujours retourner un tableau
+      return Array.isArray(result) ? result : []
     } catch (error) {
       console.error(`Redis SMEMBERS error for key ${key}:`, error)
       return []
