@@ -1,0 +1,393 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fond noir par défaut pour éviter le flash blanc */
+html {
+  background-color: #000000 !important;
+}
+
+body {
+  background-color: #000000 !important;
+}
+
+/* Masquer le contenu initial si en maintenance */
+html[data-maintenance="true"] {
+  visibility: hidden;
+}
+
+/* Animation personnalisée pour le scroll indicator */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Animation pour la barre de chargement */
+@keyframes loading-bar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+/* Animations pour le splash screen */
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-delayed {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  50% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Animation pour les éléments qui apparaissent */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out;
+}
+
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.4s ease-out;
+}
+
+@keyframes progress-bar {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 1s ease-out;
+}
+
+.animate-fade-in-delayed {
+  animation: fade-in-delayed 1.5s ease-out;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease-in-out infinite;
+}
+
+.animate-progress {
+  animation: progress-bar 6s ease-out forwards;
+}
+
+/* Logo 3D simplifié */
+.logo-3d-simple {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3));
+  border: 3px solid rgba(59, 130, 246, 0.5);
+  border-radius: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(15px);
+  box-shadow: 
+    0 0 60px rgba(59, 130, 246, 0.4),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+  animation: logo-pulse 3s ease-in-out infinite;
+  transform: perspective(1000px) rotateX(10deg) rotateY(15deg);
+}
+
+.logo-content {
+  text-align: center;
+  color: white;
+  animation: logo-content-glow 2s ease-in-out infinite alternate;
+}
+
+.logo-icon {
+  font-size: 4rem;
+  margin-bottom: 0.5rem;
+  filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.8));
+  animation: icon-bounce 2s ease-in-out infinite;
+}
+
+.logo-text {
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: 3px;
+  background: linear-gradient(45deg, #3b82f6, #8b5cf6, #ec4899);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 3s ease-in-out infinite;
+}
+
+.logo-subtitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 0.25rem;
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+
+/* Animations simplifiées */
+@keyframes logo-pulse {
+  0%, 100% {
+    transform: perspective(1000px) rotateX(10deg) rotateY(15deg) scale(1);
+    box-shadow: 
+      0 0 60px rgba(59, 130, 246, 0.4),
+      inset 0 0 20px rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    transform: perspective(1000px) rotateX(15deg) rotateY(20deg) scale(1.05);
+    box-shadow: 
+      0 0 80px rgba(59, 130, 246, 0.6),
+      inset 0 0 30px rgba(255, 255, 255, 0.2);
+  }
+}
+
+@keyframes logo-content-glow {
+  0% {
+    filter: brightness(1) drop-shadow(0 0 10px rgba(59, 130, 246, 0.5));
+  }
+  100% {
+    filter: brightness(1.2) drop-shadow(0 0 20px rgba(59, 130, 246, 0.8));
+  }
+}
+
+@keyframes icon-bounce {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.1);
+  }
+}
+
+/* Particules flottantes */
+.floating-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+  opacity: 0.6;
+  animation: float 6s infinite ease-in-out;
+}
+
+.particle-1 {
+  width: 8px;
+  height: 8px;
+  top: 20%;
+  left: 10%;
+  animation-delay: 0s;
+  animation-duration: 8s;
+}
+
+.particle-2 {
+  width: 6px;
+  height: 6px;
+  top: 60%;
+  right: 15%;
+  animation-delay: 1s;
+  animation-duration: 10s;
+}
+
+.particle-3 {
+  width: 4px;
+  height: 4px;
+  top: 30%;
+  right: 30%;
+  animation-delay: 2s;
+  animation-duration: 7s;
+}
+
+.particle-4 {
+  width: 10px;
+  height: 10px;
+  bottom: 25%;
+  left: 20%;
+  animation-delay: 3s;
+  animation-duration: 9s;
+}
+
+.particle-5 {
+  width: 5px;
+  height: 5px;
+  top: 80%;
+  left: 60%;
+  animation-delay: 4s;
+  animation-duration: 6s;
+}
+
+.particle-6 {
+  width: 7px;
+  height: 7px;
+  top: 10%;
+  left: 70%;
+  animation-delay: 5s;
+  animation-duration: 11s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px) scale(1);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translateY(-20px) translateX(10px) scale(1.1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-10px) translateX(-15px) scale(0.9);
+    opacity: 0.4;
+  }
+  75% {
+    transform: translateY(-30px) translateX(5px) scale(1.2);
+    opacity: 0.7;
+  }
+}
+
+
+@layer base {
+  body {
+    @apply bg-black text-white;
+  }
+  
+  /* Améliorer la lisibilité globale */
+  * {
+    @apply antialiased;
+  }
+  
+  /* S'assurer que tous les textes sont bien visibles */
+  p, span, div {
+    @apply text-opacity-100;
+  }
+  
+  /* Améliorer les contrastes pour les textes gris */
+  .text-gray-400 {
+    @apply text-gray-300;
+  }
+  
+  .text-gray-500 {
+    @apply text-gray-400;
+  }
+  
+  .text-gray-600 {
+    @apply text-gray-500;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-md border border-gray-700/50 rounded-xl p-4 shadow-2xl transition-all duration-300 hover:shadow-blue-500/10 hover:border-gray-600/50;
+  }
+  
+  .btn-primary {
+    @apply bg-gradient-to-r from-blue-600 to-blue-500 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-300 hover:from-blue-700 hover:to-blue-600 active:scale-95 shadow-lg hover:shadow-blue-500/30;
+  }
+  
+  .btn-secondary {
+    @apply bg-gradient-to-r from-gray-800 to-gray-700 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-300 hover:from-gray-700 hover:to-gray-600 active:scale-95 border border-gray-600/50 shadow-lg;
+  }
+  
+  .badge {
+    @apply inline-block px-3 py-1 bg-gradient-to-r from-blue-600/30 to-purple-600/30 text-blue-300 rounded-full text-sm font-semibold border border-blue-500/40 backdrop-blur-sm shadow-lg;
+  }
+  
+  /* Gradient text avec meilleur contraste et animation */
+  .gradient-text {
+    @apply bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent font-bold animate-gradient;
+    background-size: 200% auto;
+  }
+  
+  /* Glass effect amélioré avec animation */
+  .glass-card {
+    @apply bg-gradient-to-br from-gray-800/70 to-gray-900/70 backdrop-blur-xl border-2 border-gray-700/50 rounded-2xl p-6 shadow-2xl transition-all duration-300 hover:border-gray-600/70 hover:shadow-purple-500/10;
+  }
+  
+  /* Améliorer la visibilité des inputs avec style moderne */
+  input, textarea, select {
+    @apply bg-gradient-to-br from-gray-800/90 to-gray-900/90 border-2 border-gray-700/50 text-white placeholder-gray-400 rounded-xl px-4 py-2 transition-all duration-300 focus:border-blue-500/70 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:shadow-lg focus:shadow-blue-500/10;
+  }
+  
+  /* S'assurer que les liens sont visibles avec animation */
+  a {
+    @apply text-blue-400 hover:text-blue-300 transition-colors duration-200;
+  }
+  
+  /* Animation pour les cartes */
+  .card-hover {
+    @apply transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl;
+  }
+  
+  /* Bouton avec effet glow */
+  .btn-glow {
+    @apply relative overflow-hidden;
+  }
+  
+  .btn-glow::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] transition-transform duration-700;
+  }
+  
+  .btn-glow:hover::before {
+    @apply translate-x-[100%];
+  }
+}
+
+/* Import des styles Telegram */
+@import './telegram.css';
