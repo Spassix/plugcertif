@@ -1,18 +1,21 @@
 import { NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import VendorApplication from '@/models/VendorApplication'
+import { connectToRedis } from '@/lib/redis'
+import { VendorApplicationModel } from '@/lib/models/VendorApplication'
 import { sendTelegramMessage } from '@/lib/telegram'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
     const data = await request.json()
     
-    const application = await VendorApplication.findByIdAndUpdate(
+    const application = await VendorApplicationModel.findByIdAndUpdate(
       params.id,
       data,
       { new: true }
@@ -32,7 +35,7 @@ export async function PUT(
         `Elle est toujours en cours d'examen.\n\n` +
         `Vous serez notifié dès qu'une décision sera prise.`
       
-      await sendTelegramMessage(application.telegramId, message)
+      await sendTelegramMessage(String(application.telegramId), message)
     }
     
     return NextResponse.json(application)

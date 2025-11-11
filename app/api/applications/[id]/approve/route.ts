@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import VendorApplication from '@/models/VendorApplication'
-import Plug from '@/models/Plug'
+import { connectToRedis } from '@/lib/redis'
+import { VendorApplicationModel } from '@/lib/models/VendorApplication'
+import { PlugModel } from '@/lib/models/Plug'
 import { sendTelegramMessage } from '@/lib/telegram'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
-    const application = await VendorApplication.findById(params.id)
+    const application = await VendorApplicationModel.findById(params.id)
     
     if (!application) {
       return NextResponse.json(
@@ -21,22 +24,20 @@ export async function POST(
     }
     
     // Créer le plug à partir de la candidature
-    const newPlug = new Plug({
-      name: application.username,
-      telegramId: application.telegramId,
-      socialNetworks: application.socialNetworks,
-      methods: application.methods,
-      location: application.location || {
-        country: application.country,
-        department: application.department,
-        postalCode: application.postalCode
+    const newPlug = await PlugModel.create({
+      name: application.username || 'Nouveau Plug',
+      socialNetworks: application.socialNetworks || {},
+      methods: application.methods || {
+        delivery: false,
+        shipping: false,
+        meetup: false
       },
-      country: application.country,
-      department: application.department,
-      postalCode: application.postalCode,
-      deliveryZones: application.deliveryZones,
-      shippingZones: application.shippingZones,
-      meetupZones: application.meetupZones,
+      location: application.location || {
+        country: application.country || 'FR',
+        department: application.department || '',
+        postalCode: application.postalCode || ''
+      },
+      countries: application.country ? [application.country] : ['FR'],
       photo: application.photo || application.shopPhoto,
       description: application.description,
       isActive: true,
@@ -44,12 +45,11 @@ export async function POST(
       referralCount: 0
     })
     
-    await newPlug.save()
-    
     // Mettre à jour le statut de la candidature
-    application.status = 'approved'
-    application.reviewedAt = new Date()
-    await application.save()
+    await VendorApplicationModel.findByIdAndUpdate(params.id, {
+      status: 'approved',
+      reviewedAt: new Date()
+    })
     
     // Envoyer un message Telegram au candidat
     if (application.telegramId) {
@@ -59,7 +59,7 @@ export async function POST(
         `Les utilisateurs peuvent désormais vous trouver dans la liste des plugs.\n\n` +
         `Bienvenue dans la communauté ! 🔌`
       
-      await sendTelegramMessage(application.telegramId, message)
+      await sendTelegramMessage(String(application.telegramId), message)
     }
     
     return NextResponse.json({ 

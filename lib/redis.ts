@@ -147,6 +147,16 @@ export const redisHelpers = {
       return []
     }
   },
+
+  // Supprimer des membres d'un set
+  async srem(key: string, ...members: any[]): Promise<number> {
+    try {
+      return await redis.srem(key, ...members)
+    } catch (error) {
+      console.error(`Redis SREM error for key ${key}:`, error)
+      return 0
+    }
+  },
 }
 
 export default redis

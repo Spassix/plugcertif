@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import VendorApplication from '@/models/VendorApplication'
+import { connectToRedis } from '@/lib/redis'
+import { VendorApplicationModel } from '@/lib/models/VendorApplication'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function GET() {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
     console.log('Fetching vendor applications...')
-    const applications = await VendorApplication.find()
-      .sort({ createdAt: -1 })
-      .limit(100)
-      .lean()
+    const applications = await VendorApplicationModel.find()
     
     console.log(`Found ${applications.length} applications`)
     

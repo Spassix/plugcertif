@@ -1,16 +1,19 @@
 import { NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import VendorApplication from '@/models/VendorApplication'
+import { connectToRedis } from '@/lib/redis'
+import { VendorApplicationModel } from '@/lib/models/VendorApplication'
 import { sendTelegramMessage } from '@/lib/telegram'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
-    const application = await VendorApplication.findByIdAndUpdate(
+    const application = await VendorApplicationModel.findByIdAndUpdate(
       params.id,
       { 
         status: 'rejected',
@@ -36,7 +39,7 @@ export async function POST(
         `• Zones de service limitées\n\n` +
         `Vous pouvez soumettre une nouvelle candidature avec des informations complètes.`
       
-      await sendTelegramMessage(application.telegramId, message)
+      await sendTelegramMessage(String(application.telegramId), message)
     }
     
     return NextResponse.json({ success: true })
