@@ -167,6 +167,19 @@ export const PlugModel = {
     return true
   },
 
+  // Trouver et supprimer un plug (alias pour compatibilité)
+  async findByIdAndDelete(id: string): Promise<Plug | null> {
+    const plug = await this.findById(id)
+    if (!plug) return null
+    await this.delete(id)
+    return plug
+  },
+
+  // Trouver et mettre à jour un plug (alias pour compatibilité)
+  async findByIdAndUpdate(id: string, data: Partial<Plug>): Promise<Plug | null> {
+    return this.update(id, data)
+  },
+
   // Incrémenter les likes
   async incrementLikes(id: string, amount: number = 1): Promise<number> {
     const plug = await this.findById(id)

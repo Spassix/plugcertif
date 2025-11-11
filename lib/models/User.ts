@@ -13,6 +13,7 @@ export interface User {
   photoUrl?: string
   languageCode?: string
   isPremium?: boolean
+  isAdmin?: boolean
   joinedAt?: Date
   createdAt?: Date
   updatedAt?: Date
@@ -131,6 +132,17 @@ export const UserModel = {
     }
 
     return true
+  },
+
+  // Compter les utilisateurs
+  async count(): Promise<number> {
+    try {
+      const ids = await redisHelpers.smembers(USER_INDEX)
+      return Array.isArray(ids) ? ids.length : 0
+    } catch (error) {
+      console.error('UserModel.count error:', error)
+      return 0
+    }
   },
 }
 

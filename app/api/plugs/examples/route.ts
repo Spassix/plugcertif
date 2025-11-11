@@ -14,7 +14,7 @@ export async function POST() {
     const existingExamples = existingPlugs.filter(p => p.isExample)
     for (const plug of existingExamples) {
       if (plug._id) {
-        await PlugModel.findByIdAndDelete(plug._id)
+        await PlugModel.delete(plug._id)
       }
     }
     

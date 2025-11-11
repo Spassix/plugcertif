@@ -17,7 +17,8 @@ export async function POST(request: NextRequest) {
     
     // Récupérer tous les utilisateurs actifs
     const allUsers = await UserModel.find()
-    const users = allUsers.filter(u => u.isAdmin !== false) // Filtrer les utilisateurs actifs
+    // Filtrer les utilisateurs actifs (pas de filtre isAdmin car tous les utilisateurs sont actifs par défaut)
+    const users = allUsers
     
     // Envoyer le message via l'API du bot
     const botUrl = process.env.BOT_API_URL || 'https://plgscrtf-bot.onrender.com'
