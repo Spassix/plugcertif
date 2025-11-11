@@ -24,14 +24,17 @@ export async function POST(
     }
     
     // Créer le plug à partir de la candidature
+    // S'assurer que methods a toutes les propriétés requises
+    const methods = {
+      delivery: application.methods?.delivery ?? false,
+      shipping: application.methods?.shipping ?? false,
+      meetup: application.methods?.meetup ?? false
+    }
+    
     const newPlug = await PlugModel.create({
       name: application.username || 'Nouveau Plug',
       socialNetworks: application.socialNetworks || {},
-      methods: application.methods || {
-        delivery: false,
-        shipping: false,
-        meetup: false
-      },
+      methods,
       location: application.location || {
         country: application.country || 'FR',
         department: application.department || '',
