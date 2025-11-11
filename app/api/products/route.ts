@@ -1,24 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import Product from '@/models/Product'
+import { connectToRedis } from '@/lib/redis'
+import { ProductModel } from '@/lib/models/Product'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function GET(request: NextRequest) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
     const searchParams = request.nextUrl.searchParams
     const category = searchParams.get('category')
     const featured = searchParams.get('featured')
     
-    let query: any = {}
-    if (category) query.category = category
-    if (featured === 'true') query.featured = true
+    const filter: { category?: string; featured?: boolean } = {}
+    if (category) filter.category = category
+    if (featured === 'true') filter.featured = true
     
-    const products = await Product.find(query).sort({ createdAt: -1 }).lean() as any[]
+    const products = await ProductModel.find(filter)
     
     // Assurer que tous les produits ont les champs requis
     const sanitizedProducts = products.map(product => ({
-      _id: product._id?.toString() || '',
+      _id: product._id || '',
       name: product.name || 'Produit sans nom',
       description: product.description || '',
       price: typeof product.price === 'number' ? product.price : 0,
@@ -27,7 +30,7 @@ export async function GET(request: NextRequest) {
       inStock: typeof product.inStock === 'boolean' ? product.inStock : true,
       featured: typeof product.featured === 'boolean' ? product.featured : false,
       specifications: product.specifications || {},
-      plugId: product.plugId?.toString() || null,
+      plugId: product.plugId || null,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt
     }))
@@ -44,10 +47,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
     const body = await request.json()
-    const product = await Product.create(body)
+    const product = await ProductModel.create(body)
     
     return NextResponse.json(product, { status: 201 })
   } catch (error) {

@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import Plug from '@/models/Plug'
+import { connectToRedis } from '@/lib/redis'
+import { PlugModel } from '@/lib/models/Plug'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function GET() {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
     // Récupérer tous les plugs actifs
-    const plugs = await Plug.find({ isActive: true })
+    const plugs = await PlugModel.find({ isActive: true })
     
     // Extraire les pays et départements uniques
     const locations = new Map<string, Set<string>>()

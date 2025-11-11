@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import User from '@/models/User'
+import { connectToRedis } from '@/lib/redis'
+import { UserModel } from '@/lib/models/User'
 
+export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     const { message } = await request.json()
     
     if (!message || !message.trim()) {
@@ -15,7 +16,8 @@ export async function POST(request: NextRequest) {
     }
     
     // Récupérer tous les utilisateurs actifs
-    const users = await User.find({ isActive: { $ne: false } })
+    const allUsers = await UserModel.find()
+    const users = allUsers.filter(u => u.isAdmin !== false) // Filtrer les utilisateurs actifs
     
     // Envoyer le message via l'API du bot
     const botUrl = process.env.BOT_API_URL || 'https://plgscrtf-bot.onrender.com'

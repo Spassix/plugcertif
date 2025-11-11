@@ -1,23 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import mongoose from 'mongoose'
+import { connectToRedis } from '@/lib/redis'
+import { CategoryModel } from '@/lib/models/Category'
+import { ProductModel } from '@/lib/models/Product'
 
-const categorySchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true },
-  description: String,
-  createdAt: { type: Date, default: Date.now }
-})
-
-const Category = mongoose.models.Category || mongoose.model('Category', categorySchema)
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!params.id) {
       return NextResponse.json(
         { error: 'ID de catégorie invalide' },
         { status: 400 }
@@ -35,26 +31,18 @@ export async function PUT(
     }
     
     // Vérifier si une autre catégorie avec ce nom existe
-    const existingCategory = await Category.findOne({ 
-      name: { $regex: new RegExp(`^${name}$`, 'i') },
-      _id: { $ne: params.id }
-    })
-    
-    if (existingCategory) {
+    const existingCategory = await CategoryModel.findOne({ name: name.trim() })
+    if (existingCategory && existingCategory._id !== params.id) {
       return NextResponse.json(
         { error: 'Cette catégorie existe déjà' },
         { status: 400 }
       )
     }
     
-    const category = await Category.findByIdAndUpdate(
-      params.id,
-      { 
-        name: name.trim(),
-        description: description?.trim() || ''
-      },
-      { new: true, runValidators: true }
-    )
+    const category = await CategoryModel.findByIdAndUpdate(params.id, {
+      name: name.trim(),
+      description: description?.trim() || ''
+    })
     
     if (!category) {
       return NextResponse.json(
@@ -78,9 +66,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!params.id) {
       return NextResponse.json(
         { error: 'ID de catégorie invalide' },
         { status: 400 }
@@ -88,19 +76,20 @@ export async function DELETE(
     }
     
     // Vérifier si des produits utilisent cette catégorie
-    const Product = mongoose.models.Product || mongoose.model('Product', new mongoose.Schema({}))
-    const productsUsingCategory = await Product.countDocuments({ category: params.id })
-    
-    if (productsUsingCategory > 0) {
-      return NextResponse.json(
-        { error: `Impossible de supprimer cette catégorie car ${productsUsingCategory} produit(s) l'utilisent` },
-        { status: 400 }
-      )
+    const category = await CategoryModel.findById(params.id)
+    if (category) {
+      const products = await ProductModel.find({ category: category.name })
+      if (products.length > 0) {
+        return NextResponse.json(
+          { error: `Impossible de supprimer cette catégorie car ${products.length} produit(s) l'utilisent` },
+          { status: 400 }
+        )
+      }
     }
     
-    const category = await Category.findByIdAndDelete(params.id)
+    const deletedCategory = await CategoryModel.findByIdAndDelete(params.id)
     
-    if (!category) {
+    if (!deletedCategory) {
       return NextResponse.json(
         { error: 'Catégorie non trouvée' },
         { status: 404 }

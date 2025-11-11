@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import Settings from '@/models/Settings'
+import { connectToRedis } from '@/lib/redis'
+import { SettingsModel } from '@/lib/models/Settings'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function GET() {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
-    const settings = await Settings.findOne()
+    const settings = await SettingsModel.findOne()
     
     // Réseaux sociaux par défaut si non configurés
     const defaultSocial = {
@@ -17,7 +20,7 @@ export async function GET() {
     }
     
     return NextResponse.json({
-      social: settings?.creatorSocial || defaultSocial
+      social: (settings as any)?.creatorSocial || defaultSocial
     })
   } catch (error) {
     console.error('Social API error:', error)

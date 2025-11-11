@@ -1,15 +1,24 @@
 import { NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import Plug from '@/models/Plug'
+import { connectToRedis } from '@/lib/redis'
+import { PlugModel } from '@/lib/models/Plug'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function POST() {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
     // Supprimer les exemples existants
-    await Plug.deleteMany({ isExample: true })
+    const existingPlugs = await PlugModel.find({ all: true })
+    const existingExamples = existingPlugs.filter(p => p.isExample)
+    for (const plug of existingExamples) {
+      if (plug._id) {
+        await PlugModel.findByIdAndDelete(plug._id)
+      }
+    }
     
-    const examplePlugs = [
+    const examplePlugsData = [
       {
         name: "PlugsParis",
         photo: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=400",
@@ -182,11 +191,14 @@ export async function POST() {
       }
     ]
     
-    await Plug.insertMany(examplePlugs)
+    // Créer les plugs exemples
+    for (const plugData of examplePlugsData) {
+      await PlugModel.create(plugData)
+    }
     
     return NextResponse.json({ 
       success: true, 
-      message: `${examplePlugs.length} exemples de plugs ajoutés` 
+      message: `${examplePlugsData.length} exemples de plugs ajoutés` 
     })
   } catch (error) {
     console.error('Error adding example plugs:', error)

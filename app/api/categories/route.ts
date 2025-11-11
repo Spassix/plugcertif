@@ -1,21 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import mongoose from 'mongoose'
+import { connectToRedis } from '@/lib/redis'
+import { CategoryModel } from '@/lib/models/Category'
 
-// Modèle simple pour les catégories
-const categorySchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true },
-  description: String,
-  createdAt: { type: Date, default: Date.now }
-})
-
-const Category = mongoose.models.Category || mongoose.model('Category', categorySchema)
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function GET() {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
-    const categories = await Category.find({}).sort({ name: 1 }).lean()
+    const categories = await CategoryModel.find()
     
     return NextResponse.json(categories)
   } catch (error) {
@@ -29,7 +23,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
     const body = await request.json()
     const { name, description } = body
@@ -41,8 +35,8 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Vérifier si la catégorie existe déjà
-    const existingCategory = await Category.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } })
+    // Vérifier si la catégorie existe déjà (insensible à la casse)
+    const existingCategory = await CategoryModel.findOne({ name: name.trim() })
     if (existingCategory) {
       return NextResponse.json(
         { error: 'Cette catégorie existe déjà' },
@@ -50,12 +44,10 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    const category = new Category({
+    const category = await CategoryModel.create({
       name: name.trim(),
       description: description?.trim() || ''
     })
-    
-    await category.save()
     
     return NextResponse.json(category, { status: 201 })
   } catch (error) {

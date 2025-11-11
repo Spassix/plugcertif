@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import User from '@/models/User'
+import { connectToRedis } from '@/lib/redis'
+import { UserModel } from '@/lib/models/User'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function GET() {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
-    const userCount = await User.countDocuments()
+    const userCount = await UserModel.count()
     
     return NextResponse.json({
       count: userCount,

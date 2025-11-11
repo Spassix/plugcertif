@@ -1,23 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import Product from '@/models/Product'
-import mongoose from 'mongoose'
+import { connectToRedis } from '@/lib/redis'
+import { ProductModel } from '@/lib/models/Product'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
-    if (!params.id || !mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!params.id) {
       return NextResponse.json(
         { error: 'ID de produit invalide' },
         { status: 400 }
       )
     }
     
-    const product = await Product.findById(params.id).lean() as any
+    const product = await ProductModel.findById(params.id)
     
     if (!product) {
       return NextResponse.json(
@@ -26,40 +28,21 @@ export async function GET(
       )
     }
     
-    // Si le produit a un plugId, récupérer les badges
-    let badgeCount = 0
-    let badges: any[] = []
-    if (product && product.plugId) {
-      try {
-        const db = mongoose.connection.db
-        if (db) {
-          const plugBadges = await db.collection('plugbadges').findOne({ plugId: product.plugId })
-          if (plugBadges) {
-            badgeCount = plugBadges.totalBadges || 0
-            badges = plugBadges.badges || []
-          }
-        }
-      } catch (badgeError) {
-        console.warn('Error fetching badges:', badgeError)
-        // Continue sans les badges en cas d'erreur
-      }
-    }
-    
     // Sanitiser les données du produit
     const sanitizedProduct = {
-      _id: product._id?.toString() || '',
+      _id: product._id || '',
       name: product.name || 'Produit sans nom',
       description: product.description || '',
       category: product.category || 'other',
       images: Array.isArray(product.images) ? product.images : [],
-      videos: Array.isArray(product.videos) ? product.videos : [],
+      videos: [], // Pas encore implémenté dans le modèle Redis
       inStock: typeof product.inStock === 'boolean' ? product.inStock : true,
-      socialNetworks: product.socialNetworks || {},
-      likes: product.likes || 0,
-      views: product.views || 0,
-      plugId: product.plugId?.toString() || null,
-      badgeCount,
-      badges: badges.slice(-5), // Les 5 derniers badges offerts
+      socialNetworks: {},
+      likes: 0,
+      views: 0,
+      plugId: product.plugId || null,
+      badgeCount: 0,
+      badges: [],
       createdAt: product.createdAt,
       updatedAt: product.updatedAt
     }
@@ -79,14 +62,10 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
     const body = await request.json()
-    const product = await Product.findByIdAndUpdate(
-      params.id,
-      body,
-      { new: true, runValidators: true }
-    ).lean() as any
+    const product = await ProductModel.findByIdAndUpdate(params.id, body)
     
     if (!product) {
       return NextResponse.json(
@@ -110,9 +89,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
-    const product = await Product.findByIdAndDelete(params.id).lean() as any
+    const product = await ProductModel.findByIdAndDelete(params.id)
     
     if (!product) {
       return NextResponse.json(

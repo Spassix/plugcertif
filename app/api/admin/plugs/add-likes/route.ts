@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import Plug from '@/models/Plug'
+import { connectToRedis } from '@/lib/redis'
+import { PlugModel } from '@/lib/models/Plug'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,32 +16,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    await connectToDatabase()
+    await connectToRedis()
     
     const body = await request.json()
     const { likesToAdd = 50 } = body
     
     // Récupérer tous les plugs
-    const plugs = await Plug.find({})
+    const plugs = await PlugModel.find({ all: true })
     
     // Mettre à jour chaque plug
-    const updatePromises = plugs.map(plug => 
-      Plug.findByIdAndUpdate(
-        plug._id,
-        { $inc: { likes: likesToAdd } },
-        { new: true }
-      )
-    )
+    const updatePromises = plugs.map(plug => {
+      if (!plug._id) return null
+      return PlugModel.findByIdAndUpdate(plug._id, {
+        likes: (plug.likes || 0) + likesToAdd
+      })
+    })
     
-    const updatedPlugs = await Promise.all(updatePromises)
+    const updatedPlugs = (await Promise.all(updatePromises)).filter(p => p !== null)
     
     return NextResponse.json({
       success: true,
       message: `Ajouté ${likesToAdd} likes à ${updatedPlugs.length} plugs`,
       plugs: updatedPlugs.map(plug => ({
-        id: plug._id,
-        name: plug.name,
-        likes: plug.likes
+        id: plug!._id,
+        name: plug!.name,
+        likes: plug!.likes
       }))
     })
   } catch (error) {
