@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import User from '@/models/User'
+import { connectToRedis } from '@/lib/redis'
+import { UserModel } from '@/lib/models/User'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
     const userData = await request.json()
     
@@ -17,24 +20,17 @@ export async function POST(request: Request) {
     }
     
     // Créer ou mettre à jour l'utilisateur
-    const user = await User.findOneAndUpdate(
+    const user = await UserModel.findOneAndUpdate(
       { telegramId: userData.telegramId },
       {
         telegramId: userData.telegramId,
         username: userData.username,
         firstName: userData.firstName,
         lastName: userData.lastName,
-        referredBy: userData.referredBy,
-        hasBeenCountedAsReferral: userData.hasBeenCountedAsReferral,
-        lastLikeAt: userData.lastLikeAt,
-        likedPlugs: userData.likedPlugs,
-        joinedAt: userData.joinedAt,
-        isAdmin: userData.isAdmin
-      },
-      { 
-        upsert: true, 
-        new: true,
-        runValidators: true
+        photoUrl: userData.photoUrl,
+        languageCode: userData.languageCode,
+        isPremium: userData.isPremium,
+        joinedAt: userData.joinedAt ? new Date(userData.joinedAt) : undefined,
       }
     )
     
@@ -59,7 +55,7 @@ export async function POST(request: Request) {
 // Route pour supprimer un utilisateur
 export async function DELETE(request: Request) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
     const { telegramId } = await request.json()
     
@@ -71,7 +67,10 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    await User.findOneAndDelete({ telegramId })
+    const user = await UserModel.findByTelegramId(telegramId)
+    if (user && user._id) {
+      await UserModel.delete(user._id)
+    }
     
     return NextResponse.json({ success: true })
     

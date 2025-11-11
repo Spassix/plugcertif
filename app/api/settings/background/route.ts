@@ -1,26 +1,17 @@
 import { NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
+import { connectToRedis } from '@/lib/redis'
+import { SettingsModel } from '@/lib/models/Settings'
 
-// Forcer la route à être dynamique
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
 export async function GET() {
   try {
-    await connectToDatabase()
-    
-    // Import lazy du modèle pour éviter les problèmes de build
-    const Settings = (await import('@/models/Settings')).default
+    await connectToRedis()
+    const Settings = SettingsModel
     
     const settings = await Settings.findOne()
-    if (!settings) {
-      // Image de fond par défaut en mosaïque
-      return NextResponse.json({ 
-        backgroundImage: 'https://i.imgur.com/UqyTSrh.jpeg', 
-        logoImage: null 
-      })
-    }
     
     return NextResponse.json({
       backgroundImage: settings.backgroundImage || null,
@@ -39,24 +30,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const data = await request.json()
-    await connectToDatabase()
+    await connectToRedis()
     
-    // Import lazy du modèle pour éviter les problèmes de build
-    const Settings = (await import('@/models/Settings')).default
-    
-    let settings = await Settings.findOne()
-    if (!settings) {
-      settings = new Settings()
-    }
-    
-    if (data.backgroundImage !== undefined) {
-      settings.backgroundImage = data.backgroundImage
-    }
-    if (data.logoImage !== undefined) {
-      settings.logoImage = data.logoImage
-    }
-    
-    await settings.save()
+    const settings = await SettingsModel.update({
+      backgroundImage: data.backgroundImage,
+      logoImage: data.logoImage,
+    })
     
     return NextResponse.json({
       backgroundImage: settings.backgroundImage || null,

@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import mongoose from 'mongoose'
+import { connectToRedis } from '@/lib/redis'
+import { UserModel } from '@/lib/models/User'
+import { UserStatsModel } from '@/lib/models/UserStats'
+import { redisHelpers } from '@/lib/redis'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function GET(request: Request) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
-    // Récupérer les données Telegram depuis les headers ou query params
     const url = new URL(request.url)
     const telegramId = url.searchParams.get('telegramId')
     
@@ -17,13 +21,8 @@ export async function GET(request: Request) {
       )
     }
     
-    const db = mongoose.connection.db
-    if (!db) {
-      throw new Error('Database connection not established')
-    }
-    
     // Récupérer l'utilisateur
-    const user = await db.collection('users').findOne({ telegramId: telegramId })
+    const user = await UserModel.findByTelegramId(telegramId)
     
     if (!user) {
       return NextResponse.json(
@@ -33,13 +32,15 @@ export async function GET(request: Request) {
     }
     
     // Récupérer les stats de l'utilisateur
-    const userStats = await db.collection('userstats').findOne({ userId: user.telegramId })
+    const userStats = await UserStatsModel.findOne({ userId: telegramId })
     
-    // Récupérer les badges de l'utilisateur
-    const userBadges = await db.collection('userbadges').find({ userId: user.telegramId }).toArray()
+    // Récupérer les badges de l'utilisateur (depuis Redis)
+    const badgesKey = `userbadges:${telegramId}`
+    const userBadges = await redisHelpers.lrange(badgesKey) || []
     
     // Récupérer les préférences
-    const userPreferences = await db.collection('userpreferences').findOne({ userId: user.telegramId })
+    const preferencesKey = `userpreferences:${telegramId}`
+    const userPreferences = await redisHelpers.get(preferencesKey) || {}
     
     return NextResponse.json({
       user: {

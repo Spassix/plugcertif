@@ -1,34 +1,17 @@
-import { NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import Plug from '@/models/Plug'
+import { NextRequest, NextResponse } from 'next/server'
+import { connectToRedis } from '@/lib/redis'
+import { PlugModel } from '@/lib/models/Plug'
 
-async function notifyBot(type: string, action: string, data: any) {
-  try {
-    const botUrl = process.env.BOT_API_URL || 'http://localhost:3000'
-    const response = await fetch(`${botUrl}/api/webhook/update`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': process.env.BOT_API_KEY || ''
-      },
-      body: JSON.stringify({ type, action, data })
-    })
-    
-    if (!response.ok) {
-      console.error('Failed to notify bot:', await response.text())
-    }
-  } catch (error) {
-    console.error('Error notifying bot:', error)
-  }
-}
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase()
-    const plug = await Plug.findById(params.id)
+    await connectToRedis()
+    const plug = await PlugModel.findById(params.id)
     
     if (!plug) {
       return NextResponse.json({ error: 'Plug not found' }, { status: 404 })
@@ -36,34 +19,24 @@ export async function GET(
     
     return NextResponse.json(plug)
   } catch (error) {
+    console.error('Error fetching plug:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    await connectToRedis()
     const data = await request.json()
-    await connectToDatabase()
     
-    const plug = await Plug.findByIdAndUpdate(
-      params.id,
-      { ...data, updatedAt: new Date() },
-      { new: true }
-    )
+    const plug = await PlugModel.update(params.id, data)
     
     if (!plug) {
       return NextResponse.json({ error: 'Plug not found' }, { status: 404 })
     }
-    
-    // Notifier le bot
-    await notifyBot('plug', 'update', {
-      name: plug.name,
-      countryFlag: plug.countryFlag,
-      department: plug.department
-    })
     
     return NextResponse.json(plug)
   } catch (error) {
@@ -77,20 +50,14 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
+    const deleted = await PlugModel.delete(params.id)
     
-    const plug = await Plug.findByIdAndDelete(params.id)
-    
-    if (!plug) {
+    if (!deleted) {
       return NextResponse.json({ error: 'Plug not found' }, { status: 404 })
     }
     
-    // Notifier le bot
-    await notifyBot('plug', 'delete', {
-      name: plug.name
-    })
-    
-    return NextResponse.json({ success: true, message: 'Plug deleted successfully' })
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting plug:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -1,36 +1,14 @@
 import { NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import User from '@/models/User'
-import mongoose from 'mongoose'
+import { connectToRedis } from '@/lib/redis'
+import { UserModel } from '@/lib/models/User'
+import { UserStatsModel } from '@/lib/models/UserStats'
 
-// Définir le schéma UserStats directement ici pour éviter les problèmes d'import
-const userStatsSchema = new mongoose.Schema({
-  userId: {
-    type: Number, // C'est le telegramId de l'utilisateur
-    required: true,
-    unique: true,
-    index: true
-  },
-  username: String,
-  points: {
-    type: Number,
-    default: 0
-  },
-  level: {
-    type: Number,
-    default: 1
-  },
-  badgePoints: {
-    type: Number,
-    default: 0
-  }
-}, { strict: false })
-
-const UserStats = mongoose.models.UserStats || mongoose.model('UserStats', userStatsSchema)
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
   try {
-    await connectToDatabase()
+    await connectToRedis()
     
     const { userId, points, levels, message, adminName } = await request.json()
     
@@ -42,7 +20,7 @@ export async function POST(request: Request) {
     }
     
     // Trouver l'utilisateur
-    const user = await User.findById(userId)
+    const user = await UserModel.findById(userId)
     if (!user) {
       return NextResponse.json(
         { error: 'Utilisateur non trouvé' },
@@ -51,37 +29,36 @@ export async function POST(request: Request) {
     }
     
     // Trouver ou créer les stats de l'utilisateur
-    // UserStats utilise telegramId comme userId
-    const telegramIdNumber = Number(user.telegramId)
-    let userStats = await UserStats.findOne({ userId: telegramIdNumber })
-    console.log('UserStats avant modification:', userStats)
+    let userStats = await UserStatsModel.findOne({ userId: user.telegramId })
     
     if (!userStats) {
-      console.log('Création de nouvelles stats pour telegramId:', telegramIdNumber)
-      userStats = new UserStats({
-        userId: telegramIdNumber,
-        username: user.username || user.firstName,
-        points: 0,
-        level: 1,
-        badgePoints: 0
-      })
+      userStats = await UserStatsModel.findOneAndUpdate(
+        { userId: user.telegramId },
+        {
+          points: 0,
+          level: 1,
+          battlesWon: 0,
+          battlesLost: 0,
+        }
+      )
     }
     
     // Ajouter les points et niveaux
     const oldPoints = userStats.points || 0
     const oldLevel = userStats.level || 1
     
+    let newPoints = oldPoints
+    let newLevel = oldLevel
+    
     if (points && points > 0) {
-      userStats.points = oldPoints + points
-      userStats.badgePoints = (userStats.badgePoints || 0) + points
+      newPoints = await UserStatsModel.incrementPoints(user.telegramId, points)
     }
     
     if (levels && levels > 0) {
-      userStats.level = oldLevel + levels
+      newLevel = await UserStatsModel.incrementLevel(user.telegramId, levels)
     }
     
-    // Sauvegarder
-    const savedStats = await userStats.save()
+    const savedStats = await UserStatsModel.findOne({ userId: user.telegramId })
     console.log('UserStats après sauvegarde:', savedStats)
     
     // Logs pour debug
@@ -91,12 +68,11 @@ export async function POST(request: Request) {
       telegramId: user.telegramId
     })
     console.log('UserStats updated:', {
-      userId: userStats.userId,
+      userId: user.telegramId,
       oldPoints: oldPoints,
-      newPoints: userStats.points,
+      newPoints: savedStats?.points,
       oldLevel: oldLevel,
-      newLevel: userStats.level,
-      newBadgePoints: userStats.badgePoints
+      newLevel: savedStats?.level,
     })
     
     // Envoyer la notification Telegram si l'utilisateur a un telegramId
@@ -105,13 +81,16 @@ export async function POST(request: Request) {
         const botToken = process.env.TELEGRAM_BOT_TOKEN
         console.log('Bot token exists:', !!botToken)
         
+        const finalPoints = savedStats?.points || newPoints
+        const finalLevel = savedStats?.level || newLevel
+        
         let defaultMessage = ''
         if (points > 0 && levels > 0) {
-          defaultMessage = `🎁 <b>${adminName || 'L\'administrateur'} vous a envoyé ${points} points et ${levels} niveau${levels > 1 ? 'x' : ''} !</b>\n\n💎 Ces points vous permettent d'acheter des badges exclusifs.\n🎖️ Vous êtes maintenant niveau ${userStats.level} !\n\n⭐ Total: <b>${userStats.points} points</b>\n\n📱 Faites /start pour voir les mises à jour !`
+          defaultMessage = `🎁 <b>${adminName || 'L\'administrateur'} vous a envoyé ${points} points et ${levels} niveau${levels > 1 ? 'x' : ''} !</b>\n\n💎 Ces points vous permettent d'acheter des badges exclusifs.\n🎖️ Vous êtes maintenant niveau ${finalLevel} !\n\n⭐ Total: <b>${finalPoints} points</b>\n\n📱 Faites /start pour voir les mises à jour !`
         } else if (points > 0) {
-          defaultMessage = `🎁 <b>${adminName || 'L\'administrateur'} vous a envoyé ${points} points pour votre fidélité !</b>\n\n💎 Ces points vous permettent d'acheter des badges exclusifs dans la boutique.\n\n⭐ Vous avez maintenant <b>${userStats.points} points</b> au total !\n\n📱 Faites /start pour voir les mises à jour et découvrir les nouveautés !`
+          defaultMessage = `🎁 <b>${adminName || 'L\'administrateur'} vous a envoyé ${points} points pour votre fidélité !</b>\n\n💎 Ces points vous permettent d'acheter des badges exclusifs dans la boutique.\n\n⭐ Vous avez maintenant <b>${finalPoints} points</b> au total !\n\n📱 Faites /start pour voir les mises à jour et découvrir les nouveautés !`
         } else if (levels > 0) {
-          defaultMessage = `🎖️ <b>${adminName || 'L\'administrateur'} vous a fait monter de ${levels} niveau${levels > 1 ? 'x' : ''} !</b>\n\n🆙 Vous êtes maintenant niveau ${userStats.level} !\n🔓 De nouveaux badges sont maintenant disponibles dans la boutique.\n\n📱 Faites /start pour voir les mises à jour !`
+          defaultMessage = `🎖️ <b>${adminName || 'L\'administrateur'} vous a fait monter de ${levels} niveau${levels > 1 ? 'x' : ''} !</b>\n\n🆙 Vous êtes maintenant niveau ${finalLevel} !\n🔓 De nouveaux badges sont maintenant disponibles dans la boutique.\n\n📱 Faites /start pour voir les mises à jour !`
         }
         
         const response = await fetch(
@@ -141,8 +120,8 @@ export async function POST(request: Request) {
     
     return NextResponse.json({
       success: true,
-      newTotal: userStats.points,
-      newLevel: userStats.level,
+      newTotal: savedStats?.points || newPoints,
+      newLevel: savedStats?.level || newLevel,
       message: 'Envoi réussi'
     })
     

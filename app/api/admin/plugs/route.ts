@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
+import { connectToRedis } from '@/lib/redis'
+import { PlugModel } from '@/lib/models/Plug'
 
-// Forcer la route à être dynamique pour éviter les problèmes de build
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
@@ -28,22 +28,33 @@ async function notifyBot(type: string, action: string, data: any) {
 export async function POST(request: Request) {
   try {
     const data = await request.json()
-    await connectToDatabase()
+    await connectToRedis()
     
-    // Import lazy du modèle pour éviter les problèmes de build
-    const Plug = (await import('@/models/Plug')).default
-    
-    // Ajouter isActive par défaut
-    const plugData = {
-      ...data,
-      isActive: true,
-      likes: 0,
-      referralCount: 0,
-      createdAt: new Date()
-    }
-    
-    const plug = new Plug(plugData)
-    await plug.save()
+    // Créer le plug
+    const plug = await PlugModel.create({
+      name: data.name,
+      photo: data.photo,
+      description: data.description,
+      methods: data.methods || { delivery: false, shipping: false, meetup: false },
+      deliveryDepartments: data.deliveryDepartments || [],
+      deliveryPostalCodes: data.deliveryPostalCodes || [],
+      meetupDepartments: data.meetupDepartments || [],
+      meetupPostalCodes: data.meetupPostalCodes || [],
+      socialNetworks: data.socialNetworks || {},
+      customNetworks: data.customNetworks || [],
+      location: data.location || { country: 'FR', department: '', postalCode: '' },
+      countries: data.countries || ['FR'],
+      shippingCountries: data.shippingCountries || [],
+      country: data.country,
+      countryFlag: data.countryFlag,
+      department: data.department,
+      postalCode: data.postalCode,
+      likes: data.likes || 0,
+      referralCount: data.referralCount || 0,
+      referralLink: data.referralLink,
+      isActive: data.isActive !== undefined ? data.isActive : true,
+      isExample: data.isExample || false,
+    })
     
     // Notifier le bot
     await notifyBot('plug', 'create', {
