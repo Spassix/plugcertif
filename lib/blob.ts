@@ -1,7 +1,4 @@
 import { put, del, list, head } from '@vercel/blob'
-import { NextRequest } from 'next/server'
-
-import { put, del, list, head } from '@vercel/blob'
 
 // Upload un fichier vers Vercel Blob
 export async function uploadToBlob(file: File | Buffer, filename: string): Promise<string> {
