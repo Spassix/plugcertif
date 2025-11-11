@@ -1,16 +1,20 @@
 import { Redis } from '@upstash/redis'
 
-// Initialiser Redis avec les variables d'environnement
+// Initialiser Redis avec les variables d'environnement Upstash
+// Supporte à la fois UPSTASH_KV_* (KV) et UPSTASH_REDIS_* (Redis standard)
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || '',
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+  url: process.env.UPSTASH_KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '',
+  token: process.env.UPSTASH_KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '',
 })
 
 // Vérifier la connexion
 export async function connectToRedis() {
   try {
-    if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-      throw new Error('UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set')
+    const url = process.env.UPSTASH_KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL
+    const token = process.env.UPSTASH_KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN
+    
+    if (!url || !token) {
+      throw new Error('UPSTASH_KV_REST_API_URL and UPSTASH_KV_REST_API_TOKEN (or UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN) must be set')
     }
     // Test de connexion
     await redis.ping()

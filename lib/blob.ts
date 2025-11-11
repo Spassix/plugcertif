@@ -1,13 +1,11 @@
 import { put, del, list, head } from '@vercel/blob'
 import { NextRequest } from 'next/server'
 
+import { put, del, list, head } from '@vercel/blob'
+
 // Upload un fichier vers Vercel Blob
 export async function uploadToBlob(file: File | Buffer, filename: string): Promise<string> {
   try {
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      throw new Error('BLOB_READ_WRITE_TOKEN must be set')
-    }
-
     let buffer: Buffer
     let contentType: string
 
@@ -21,10 +19,10 @@ export async function uploadToBlob(file: File | Buffer, filename: string): Promi
     }
 
     // Upload vers Vercel Blob
+    // Le token est automatiquement détecté depuis BLOB_READ_WRITE_TOKEN
     const blob = await put(filename, buffer, {
       access: 'public',
       contentType,
-      token: process.env.BLOB_READ_WRITE_TOKEN,
     })
 
     return blob.url
@@ -37,13 +35,7 @@ export async function uploadToBlob(file: File | Buffer, filename: string): Promi
 // Supprimer un fichier de Vercel Blob
 export async function deleteFromBlob(url: string): Promise<void> {
   try {
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      throw new Error('BLOB_READ_WRITE_TOKEN must be set')
-    }
-
-    await del(url, {
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-    })
+    await del(url)
   } catch (error) {
     console.error('Blob delete error:', error)
     throw error
@@ -53,13 +45,8 @@ export async function deleteFromBlob(url: string): Promise<void> {
 // Lister les fichiers
 export async function listBlobs(prefix?: string): Promise<any[]> {
   try {
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      throw new Error('BLOB_READ_WRITE_TOKEN must be set')
-    }
-
     const { blobs } = await list({
       prefix,
-      token: process.env.BLOB_READ_WRITE_TOKEN,
     })
 
     return blobs
@@ -72,14 +59,7 @@ export async function listBlobs(prefix?: string): Promise<any[]> {
 // Obtenir les informations d'un fichier
 export async function getBlobInfo(url: string): Promise<any | null> {
   try {
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      throw new Error('BLOB_READ_WRITE_TOKEN must be set')
-    }
-
-    const blob = await head(url, {
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-    })
-
+    const blob = await head(url)
     return blob
   } catch (error) {
     console.error('Blob head error:', error)
